@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Presión y Pulso (Público)</title>
+    <!-- Tailwind CSS CDN para un estilo moderno y responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="container mx-auto p-6 md:p-8 card">
+
+        <!-- Título y descripción -->
+        <h1 class="text-4xl font-bold text-center text-gray-800 mb-2">Registro de Presión y Pulso</h1>
+        <p class="text-center text-gray-600 mb-8">Ingresa tus datos para llevar un historial detallado.</p>
+
+        <!-- Formulario de ingreso de datos -->
+        <form id="pressure-form" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Presión Arterial -->
+                <div>
+                    <label for="systolic" class="block text-sm font-medium text-gray-700">Presión Sistólica (mmHg)</label>
+                    <input type="number" id="systolic" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <div>
+                    <label for="diastolic" class="block text-sm font-medium text-gray-700">Presión Diastólica (mmHg)</label>
+                    <input type="number" id="diastolic" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <!-- Pulso -->
+                <div>
+                    <label for="pulse" class="block text-sm font-medium text-gray-700">Pulso (ppm)</label>
+                    <input type="number" id="pulse" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <!-- Fecha y Hora -->
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="date" id="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <div>
+                    <label for="time" class="block text-sm font-medium text-gray-700">Hora</label>
+                    <input type="time" id="time" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <!-- Medicación y Contexto -->
+                <div>
+                    <label for="medication" class="block text-sm font-medium text-gray-700">Medicación (opcional)</label>
+                    <input type="text" id="medication" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <div>
+                    <label for="context" class="block text-sm font-medium text-gray-700">Contexto (opcional)</label>
+                    <input type="text" id="context" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+            </div>
+            <!-- Comentarios -->
+            <div>
+                <label for="comments" class="block text-sm font-medium text-gray-700">Comentarios (opcional)</label>
+                <textarea id="comments" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+            </div>
+            
+            <div class="flex justify-center">
+                <button type="submit" class="w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition-colors">
+                    Guardar Registro
+                </button>
+            </div>
+        </form>
+
+        <!-- Mensaje de confirmación (oculto por defecto) -->
+        <div id="message-box" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                <p id="message-text" class="text-lg font-semibold text-gray-800"></p>
+                <button id="message-close" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Aceptar</button>
+            </div>
+        </div>
+
+        <hr class="my-8 border-t border-gray-200">
+
+        <!-- Historial y botón de PDF -->
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-semibold text-gray-800">Historial (Público)</h2>
+            <button id="generate-pdf" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition-colors flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.25m0 0a3.003 3.003 0 00-4.084-2.837l-1.873.743A.75.75 0 0112 11.25h1.594m-5.462 8.243c.059-.144.206-.24.363-.255A.75.75 0 0110.5 19.5h1.5a.75.75 0 01.372.08c.156.062.296.166.413.3a2.593 2.593 0 012.633.278m-4.5 1.5a.75.75 0 00-.75.75c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75c0-.414-.336-.75-.75-.75h-4.5z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.894 18.094A2.083 2.083 0 0015 17.25H9c-.742 0-1.442-.323-1.921-.861A.75.75 0 016 15v-1.5a.75.75 0 01.75-.75h9a.75.75 0 01.75.75V15c0 .742.323 1.442.861 1.921a2.083 2.083 0 00.999 1.674z" />
+                </svg>
+                Generar PDF
+                <div id="pdf-spinner" class="ml-2 loading-spinner hidden"></div>
+            </button>
+        </div>
+
+        <!-- Contenedor del historial -->
+        <div id="history-container" class="space-y-4">
+            <!-- Los registros se insertarán aquí por JavaScript -->
+            <p class="text-center text-gray-500" id="initial-message">Ingresa tu primer registro para ver el historial aquí.</p>
+        </div>
+        
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, setDoc, doc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // jsPDF Library CDN
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        document.head.appendChild(script);
+
+        // Variables globales proporcionadas por el entorno de Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let auth;
+        let userId = null;
+        let allRecords = []; // Para almacenar todos los registros y generar el PDF
+
+        // Referencias a elementos del DOM
+        const form = document.getElementById('pressure-form');
+        const historyContainer = document.getElementById('history-container');
+        const generatePdfButton = document.getElementById('generate-pdf');
+        const pdfSpinner = document.getElementById('pdf-spinner');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageCloseButton = document.getElementById('message-close');
+        const initialMessage = document.getElementById('initial-message');
+
+        // Función para mostrar mensajes modales
+        function showMessage(text) {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden');
+        }
+
+        messageCloseButton.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
+
+        // Inicializar Firebase
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('debug'); // Habilitar logs para depuración
+
+            // Autenticar al usuario
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Usuario autenticado. UID:", userId);
+                    // Iniciar la escucha de datos
+                    listenForRecords();
+                } else {
+                    console.log("No hay usuario autenticado, intentando inicio de sesión...");
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Error al autenticar:", error);
+                        showMessage("Hubo un error al iniciar la aplicación. Por favor, recarga la página.");
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
+            showMessage("Error al inicializar la base de datos. Por favor, verifique la configuración.");
+        }
+
+        // Listener para los registros de Firestore
+        function listenForRecords() {
+            if (!userId) {
+                console.warn("UserID no disponible, no se puede escuchar los registros.");
+                return;
+            }
+
+            // CAMBIO: Usa la colección pública para que cualquiera pueda ver los datos
+            const collectionPath = `artifacts/${appId}/public/data/pressure_records`;
+            const recordsQuery = query(collection(db, collectionPath), orderBy("timestamp", "desc"));
+
+            onSnapshot(recordsQuery, (snapshot) => {
+                historyContainer.innerHTML = '';
+                allRecords = [];
+                if (snapshot.empty) {
+                    initialMessage.classList.remove('hidden');
+                    return;
+                } else {
+                    initialMessage.classList.add('hidden');
+                }
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allRecords.push(data); // Guardar los datos para el PDF
+                    const recordElement = document.createElement('div');
+                    recordElement.className = 'card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center text-gray-800';
+
+                    const date = new Date(data.timestamp.toDate());
+                    const formattedDate = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+                    const formattedTime = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                    recordElement.innerHTML = `
+                        <div>
+                            <p class="font-bold text-lg">${data.systolic}/${data.diastolic} mmHg</p>
+                            <p class="text-sm text-gray-600">Pulso: ${data.pulse} ppm</p>
+                        </div>
+                        <div class="mt-2 sm:mt-0 sm:text-right">
+                            <p class="text-sm font-semibold">${formattedDate} - ${formattedTime}</p>
+                            <p class="text-sm text-gray-500">Medicación: ${data.medication || 'N/A'}</p>
+                            <p class="text-sm text-gray-500">Contexto: ${data.context || 'N/A'}</p>
+                            ${data.comments ? `<p class="text-xs italic text-gray-400">Comentarios: ${data.comments}</p>` : ''}
+                        </div>
+                    `;
+                    historyContainer.appendChild(recordElement);
+                });
+            }, (error) => {
+                console.error("Error al escuchar los registros:", error);
+                showMessage("Hubo un problema al cargar el historial. Por favor, inténtalo de nuevo.");
+            });
+        }
+
+        // Manejar el envío del formulario
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!userId) {
+                showMessage("La aplicación aún se está cargando. Por favor, espera un momento.");
+                return;
+            }
+
+            const systolic = document.getElementById('systolic').value;
+            const diastolic = document.getElementById('diastolic').value;
+            const pulse = document.getElementById('pulse').value;
+            const dateStr = document.getElementById('date').value;
+            const timeStr = document.getElementById('time').value;
+            const medication = document.getElementById('medication').value;
+            const context = document.getElementById('context').value;
+            const comments = document.getElementById('comments').value;
+
+            // Combinar fecha y hora
+            const recordDate = new Date(`${dateStr}T${timeStr}`);
+
+            const newRecord = {
+                systolic: parseInt(systolic),
+                diastolic: parseInt(diastolic),
+                pulse: parseInt(pulse),
+                medication: medication,
+                context: context,
+                comments: comments,
+                timestamp: recordDate,
+            };
+
+            // CAMBIO: Usa la colección pública para que cualquiera pueda guardar datos
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/pressure_records`);
+
+            try {
+                await addDoc(collectionRef, newRecord);
+                form.reset();
+                showMessage("¡Registro guardado exitosamente!");
+            } catch (error) {
+                console.error("Error al guardar el registro:", error);
+                showMessage("Error al guardar el registro. Inténtalo de nuevo.");
+            }
+        });
+
+        // Manejar la generación del PDF
+        generatePdfButton.addEventListener('click', () => {
+            if (!window.jspdf) {
+                showMessage("La biblioteca PDF aún no se ha cargado. Por favor, espera un momento.");
+                return;
+            }
+            if (allRecords.length === 0) {
+                showMessage("No hay registros en el historial para generar el PDF.");
+                return;
+            }
+
+            pdfSpinner.classList.remove('hidden');
+            generatePdfButton.disabled = true;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let y = 20;
+
+            doc.setFontSize(22);
+            doc.text("Historial de Presión Arterial y Pulso", 20, y);
+            y += 10;
+
+            doc.setFontSize(12);
+            doc.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, 20, y);
+            y += 15;
+
+            doc.setFontSize(10);
+
+            allRecords.forEach(record => {
+                if (y > 280) { // Si la posición Y excede el límite de la página, añade una nueva
+                    doc.addPage();
+                    y = 20;
+                }
+                const date = new Date(record.timestamp.toDate());
+                const formattedDate = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+                const formattedTime = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                doc.text(`Fecha: ${formattedDate} - Hora: ${formattedTime}`, 20, y);
+                y += 5;
+                doc.text(`Presión: ${record.systolic}/${record.diastolic} mmHg - Pulso: ${record.pulse} ppm`, 20, y);
+                y += 5;
+                if (record.medication) {
+                    doc.text(`Medicación: ${record.medication}`, 20, y);
+                    y += 5;
+                }
+                if (record.context) {
+                    doc.text(`Contexto: ${record.context}`, 20, y);
+                    y += 5;
+                }
+                if (record.comments) {
+                    doc.text(`Comentarios: ${record.comments}`, 20, y);
+                    y += 5;
+                }
+                y += 10; // Espacio entre registros
+            });
+
+            doc.save("historial_presion_pulso.pdf");
+            pdfSpinner.classList.add('hidden');
+            generatePdfButton.disabled = false;
+        });
+
+        // Establecer la fecha y hora actuales por defecto
+        window.addEventListener('load', () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            document.getElementById('time').value = `${hours}:${minutes}`;
+        });
+    </script>
+</body>
+</html>
